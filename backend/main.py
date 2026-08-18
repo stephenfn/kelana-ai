@@ -1,21 +1,49 @@
+# backend/main.py
+
+# Impor fungsi logika bisnis dari modul services.trip_service
+from services.trip_service import (
+    calculate_daily_budget,
+    get_recommendations,
+    get_travel_season,
+    get_trip_category,
+)
+
+
 def print_trip_summary(destination, country, days, budget, currency, travel_month):
-    """Fungsi untuk mencetak ringkasan perjalanan dengan format yang rapi"""
+    """Fungsi untuk mencetak ringkasan perjalanan & rekomendasi"""
+    
+    # Memproses logika bisnis menggunakan layer service
+    category = get_trip_category(budget)
+    season = get_travel_season(travel_month)
+    daily_budget = calculate_daily_budget(budget, days)
+    recommendations = get_recommendations(destination)
+
     print("\n========================")
-    print("KelanaAI")
+    print("KelanaAI Recommendation Engine")
     print("========================")
     print(f"Destination  : {destination}")
     print(f"Country      : {country}")
     print(f"Days         : {days}")
-    # Format :g dipakai biar kalau budgetnya 1500.0, tampilnya tetap 1500 (angka bulat)
-    print(f"Budget       : {budget:g} {currency}") 
+    print(f"Budget       : {budget:g} {currency}")
     print(f"Currency     : {currency}")
     print(f"Travel Month : {travel_month}")
+    print("------------------------")
+    print(f"Trip Category: {category}")
+    print(f"Season       : {season}")
+    print(f"Daily Budget : {daily_budget:.2f} {currency}/day")
+    print("========================")
+    print(f"Rekomendasi Tempat di {destination}:")
+
+    # Iterasi list tempat menggunakan loop for
+    for index, place in enumerate(recommendations, start=1):
+        print(f"  {index}. {place}")
     print("========================\n")
+
 
 def main():
     print("Masukkan detail rencana perjalanan Anda:")
-    
-    # a. Input Interaktif & Konversi Tipe Data
+
+    # Input interaktif
     destination = input("Masukkan Destination (contoh: Tokyo)   : ")
     country = input("Masukkan Country (contoh: Japan)       : ")
     days = int(input("Masukkan jumlah Days (contoh: 5)       : "))
@@ -23,9 +51,11 @@ def main():
     currency = input("Masukkan Currency (contoh: USD)        : ")
     travel_month = input("Masukkan Travel Month (contoh: December): ")
 
-    # b. Panggil fungsi untuk mencetak hasil
-    print_trip_summary(destination, country, days, budget, currency, travel_month)
+    # Panggil fungsi cetak ringkasan
+    print_trip_summary(
+        destination, country, days, budget, currency, travel_month
+    )
 
-# Memastikan script dijalankan secara langsung
+
 if __name__ == "__main__":
     main()
