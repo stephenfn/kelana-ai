@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 try:
     from .database import SessionLocal
@@ -12,6 +13,13 @@ except ImportError:
     from services.trip_service import calculate_daily_budget, get_trip_category
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- PART 7: POST (Save Trip) ---
 @app.post("/api/v1/trips")
