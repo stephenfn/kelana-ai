@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generateTrip } from "@/services/tripService";
 
@@ -27,8 +27,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const itinerary = useMemo(() => trip ? makeItinerary(trip.destination, trip.days) : [], [trip]);
-  const update = (field: keyof TripForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+
+  const itinerary = useMemo(() => (trip ? makeItinerary(trip.destination, trip.days) : []), [trip]);
+  const update = (field: keyof TripForm, value: string) =>
+    setForm((current) => ({ ...current, [field]: value }));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,15 +46,27 @@ export default function Home() {
       setError("Add a destination, budget, and trip length to continue.");
       return;
     }
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const generatedTrip = await generateTrip({ destination: form.destination, budget: Number(form.budget), days: Number(form.days), travel_style: form.travel_style });
+      const generatedTrip = await generateTrip({
+        destination: form.destination,
+        budget: Number(form.budget),
+        days: Number(form.days),
+        travel_style: form.travel_style,
+      });
       setTrip(generatedTrip as SavedTrip);
       router.push("/trips");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to generate itinerary. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to generate itinerary. Please try again."
+      );
       setTrip(null);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
