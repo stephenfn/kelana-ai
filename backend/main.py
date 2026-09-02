@@ -6,16 +6,24 @@ try:
     from .database import SessionLocal, Base, engine
     from .models.trip import Trip
     from .models.user import User
-    from .schemas import TripRequest, TripUpdateRequest, RegisterRequest, LoginRequest, TokenResponse, UserResponse
+    from .schemas import (
+        TripRequest, TripUpdateRequest, RegisterRequest, LoginRequest, 
+        TokenResponse, UserResponse, QuestionRequest, AssistantResponse
+    )
     from .services.trip_service import calculate_daily_budget, get_trip_category
     from .services.auth_service import hash_password, verify_password, create_access_token, decode_token
+    from .services.kb_service import get_kb_service
 except ImportError:
     from database import SessionLocal, Base, engine
     from models.trip import Trip
     from models.user import User
-    from schemas import TripRequest, TripUpdateRequest, RegisterRequest, LoginRequest, TokenResponse, UserResponse
+    from schemas import (
+        TripRequest, TripUpdateRequest, RegisterRequest, LoginRequest, 
+        TokenResponse, UserResponse, QuestionRequest, AssistantResponse
+    )
     from services.trip_service import calculate_daily_budget, get_trip_category
     from services.auth_service import hash_password, verify_password, create_access_token, decode_token
+    from services.kb_service import get_kb_service
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -229,3 +237,54 @@ def delete_trip(trip_id: int, current_user: User = Depends(get_current_user)):
     db.close()
 
     return {"message": f"Trip with id {trip_id} deleted successfully"}
+
+
+# ============= RAG ASSISTANT ENDPOINTS (SESSION 9) =============
+
+# --- POST /api/v1/ask (Knowledge Base Query) ---
+@app.post("/api/v1/ask", response_model=AssistantResponse)
+def ask_knowledge_base(request: QuestionRequest, current_user: User = Depends(get_current_user)):
+    """
+    Query the Knowledge Base with a travel question.
+    
+    This endpoint implements Retrieval-Augmented Generation (RAG):
+    1. User asks a question
+    2. Knowledge Base retrieves relevant documents
+    3. Foundation Model generates grounded answer
+    4. Answer with citations is returned to frontend
+    
+    Args:
+        request: QuestionRequest containing the question
+        current_user: Authenticated user from JWT token
+        
+    Returns:
+        AssistantResponse with answer and source citations
+    """
+    # Get KB service
+    kb_service = get_kb_service()
+    
+    # Query knowledge base
+    kb_response = kb_service.ask_knowledge_base(request.question)
+    
+    if not kb_response.get("success"):
+        raise HTTPException(
+            status_code=500,
+            detail=f"Knowledge Base error: {kb_response.get('error', 'Unknown error')}"
+        )
+    
+    # Format response
+    return AssistantResponse(
+        question=request.question,
+        answer=kb_response.get("answer", ""),
+        sources=kb_response.get("sources", [])
+    )
+
+
+# --- POST /api/v1/assistant (Alias for /ask) ---
+@app.post("/api/v1/assistant", response_model=AssistantResponse)
+def assistant_endpoint(request: QuestionRequest, current_user: User = Depends(get_current_user)):
+    """
+    Travel Assistant endpoint (alias for /ask).
+    Query the Knowledge Base with travel-related questions.
+    """
+    return ask_knowledge_base(request, current_user)

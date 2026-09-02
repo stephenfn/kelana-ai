@@ -35,3 +35,21 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class QuestionRequest(BaseModel):
+    """Request model for Knowledge Base query"""
+    question: str
+
+
+class AssistantResponse(BaseModel):
+    """Response model for RAG-based assistant"""
+    question: str
+    answer: str
+    sources: list = []
+
+
+class SourceReference(BaseModel):
+    """Citation/Source reference from Knowledge Base"""
+    document: str
+    source: str
